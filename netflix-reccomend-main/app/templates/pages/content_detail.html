@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}{{ item.title }} — CineIQ Content Details{% endblock %}
+
+{% block content %}
+<div class="space-y-8 max-w-5xl mx-auto">
+
+  <!-- Back Link & Header Breadcrumb -->
+  <div class="flex items-center justify-between">
+    <a href="{{ url_for('main.explore') }}"
+       class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#888] hover:text-white transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+      Back to Explorer
+    </a>
+
+    <span class="text-xs px-2.5 py-1 rounded-md font-mono text-[#888] border border-[#2a2a3e]" style="background:var(--bg-surface)">
+      ID: {{ item.show_id }}
+    </span>
+  </div>
+
+  <!-- Primary Content Card -->
+  <div class="rounded-2xl border border-[#2a2a3e] p-6 sm:p-8 relative overflow-hidden" style="background:var(--bg-card)">
+    <!-- Top Row Badges -->
+    <div class="flex flex-wrap items-center gap-2.5 mb-4">
+      <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
+                   {% if item.type == 'Movie' %}bg-red-950/70 text-red-300 border border-red-800/60{% else %}bg-indigo-950/70 text-indigo-300 border border-indigo-800/60{% endif %}">
+        {{ item.type }}
+      </span>
+
+      <span class="px-2.5 py-0.5 rounded-md text-xs font-semibold text-slate-300 border border-[#2a2a3e]" style="background:var(--bg-surface)">
+        {{ item.release_year }}
+      </span>
+
+      <span class="px-2.5 py-0.5 rounded-md text-xs font-semibold text-amber-300 border border-amber-800/40 bg-amber-950/40">
+        {{ item.rating }}
+      </span>
+
+      <span class="text-xs text-[#888] font-medium ml-1">
+        {{ item.duration_raw }}
+      </span>
+    </div>
+
+    <!-- Title -->
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">
+      {{ item.title }}
+    </h1>
+
+    <!-- Primary Action: Find Similar Content -->
+    <div class="flex flex-wrap items-center gap-3 pt-1 pb-6 border-b border-[#2a2a3e]">
+      <a href="{{ url_for('main.recommendations', show_id=item.show_id) }}"
+         class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white shadow-lg shadow-red-950/30 transition-all"
+         style="background:var(--accent)"
+         onmouseover="this.style.background='var(--accent-hover)'"
+         onmouseout="this.style.background='var(--accent)'">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Find Similar Content
+      </a>
+
+      <button onclick="navigator.clipboard.writeText(window.location.href); alert('Link copied to clipboard!');"
+              class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-300 border border-[#2a2a3e] hover:border-[#888] transition-colors"
+              style="background:var(--bg-surface)">
+        <svg class="w-4 h-4 text-[#888]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+        </svg>
+        Copy Link
+      </button>
+    </div>
+
+    <!-- Synopsis / Description -->
+    <div class="py-6 border-b border-[#2a2a3e]">
+      <h2 class="text-xs font-bold uppercase tracking-wider text-[#888] mb-2">Synopsis</h2>
+      <p class="text-base text-slate-200 leading-relaxed max-w-3xl">
+        {{ item.description }}
+      </p>
+    </div>
+
+    <!-- Metadata Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-8 pt-6">
+      <!-- Genres -->
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-[#888] mb-1">Genres</p>
+        {% if item.genre_list %}
+        <div class="flex flex-wrap gap-1.5">
+          {% for g in item.genre_list %}
+          <a href="{{ url_for('main.explore', genre=g) }}"
+             class="px-2.5 py-1 rounded text-xs font-medium text-slate-300 bg-slate-800/80 hover:bg-slate-700 hover:text-white transition-colors border border-slate-700/50">
+            {{ g }}
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-400">Not available in dataset</p>
+        {% endif %}
+      </div>
+
+      <!-- Countries -->
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-[#888] mb-1">Production Country</p>
+        {% if item.country_list %}
+        <div class="flex flex-wrap gap-1.5">
+          {% for c in item.country_list %}
+          <a href="{{ url_for('main.explore', country=c) }}"
+             class="px-2.5 py-1 rounded text-xs font-medium text-slate-300 bg-slate-800/80 hover:bg-slate-700 hover:text-white transition-colors border border-slate-700/50">
+            {{ c }}
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-400">Not available in dataset</p>
+        {% endif %}
+      </div>
+
+      <!-- Director -->
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-[#888] mb-1">Director</p>
+        <p class="text-sm text-slate-200 font-medium">
+          {{ item.director }}
+        </p>
+      </div>
+
+      <!-- Date Added to Catalog -->
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-[#888] mb-1">Date Added to Catalog</p>
+        <p class="text-sm text-slate-200">
+          {{ item.date_added }}
+        </p>
+      </div>
+
+      <!-- Cast (Full Width) -->
+      <div class="md:col-span-2">
+        <p class="text-xs font-bold uppercase tracking-wider text-[#888] mb-1">Cast</p>
+        <p class="text-sm text-slate-300 leading-relaxed">
+          {{ item.cast }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Related Recommendations Preview -->
+  {% if preview_recs %}
+  <div class="space-y-4 pt-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          Similar Titles You Might Like
+        </h2>
+        <p class="text-xs text-[#888]">Content-based similarity derived from TF-IDF vectorization.</p>
+      </div>
+
+      <a href="{{ url_for('main.recommendations', show_id=item.show_id) }}"
+         class="text-xs font-semibold text-red-500 hover:underline inline-flex items-center gap-1">
+        View All Recommendations &rarr;
+      </a>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {% for rec in preview_recs %}
+      <div class="rounded-xl border border-[#2a2a3e] p-4 flex flex-col justify-between hover:border-red-600 transition-all group"
+           style="background:var(--bg-card)">
+        <div>
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <span class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded
+                         {% if rec.type == 'Movie' %}bg-red-950/60 text-red-400{% else %}bg-indigo-950/60 text-indigo-400{% endif %}">
+              {{ rec.type }}
+            </span>
+            <span class="text-xs font-bold text-emerald-400">
+              {{ rec.similarity_percentage }}% Match
+            </span>
+          </div>
+
+          <h3 class="font-bold text-sm text-white line-clamp-1 group-hover:text-red-400 transition-colors" title="{{ rec.title }}">
+            {{ rec.title }}
+          </h3>
+
+          <p class="text-xs text-[#888] mt-0.5">
+            {{ rec.release_year }} &bull; {{ rec.duration_raw }}
+          </p>
+
+          <!-- Explanations summary -->
+          {% if rec.explanations %}
+          <div class="mt-3 flex flex-wrap gap-1">
+            {% for exp in rec.explanations[:2] %}
+            <span class="text-[10px] px-1.5 py-0.5 rounded border border-[#2a2a3e] text-slate-300 bg-slate-900/60">
+              {{ exp.label }}: {{ exp.detail[:20] }}{% if exp.detail|length > 20 %}...{% endif %}
+            </span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="pt-4 mt-3 border-t border-[#2a2a3e] flex items-center justify-between">
+          <a href="{{ url_for('main.content_details', show_id=rec.show_id) }}"
+             class="text-xs font-medium text-slate-300 hover:text-white">
+            Details
+          </a>
+          <a href="{{ url_for('main.recommendations', show_id=rec.show_id) }}"
+             class="text-xs font-semibold text-red-500 hover:text-red-400">
+            Similar &rarr;
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

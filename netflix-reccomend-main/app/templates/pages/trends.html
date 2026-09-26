@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Trend Analysis — CineIQ{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  <!-- Header Banner -->
+  <div class="border-b border-[#2a2a3e] pb-5">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-red-950/60 border border-red-800/60 text-red-400">
+        Analytical Deep-Dive
+      </span>
+      <span class="text-xs text-[#888]">Macro Patterns &amp; Catalog Evolution</span>
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+      Catalog <span style="color:var(--accent)">Trends</span> &amp; Evolution
+    </h1>
+    <p class="text-[#888] text-sm mt-1 max-w-3xl">
+      Analyze how production formats, runtime profiles, genre prevalence, and regional origins evolved over time across the Netflix catalog. Use interactive filters below to narrow your analytical scope.
+    </p>
+  </div>
+
+  <!-- Interactive Filter Controls Bar -->
+  <div class="rounded-xl border border-[#2a2a3e] p-5 space-y-4" style="background:var(--bg-card)">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+        </svg>
+        Filter Analytical Scope
+      </span>
+      <span id="filtered-count" class="text-xs text-[#888]">
+        Analyzing {{ trend_data.total_matches }} titles
+      </span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <!-- Format Filter -->
+      <div>
+        <label for="trend-type" class="block text-[11px] font-semibold text-[#888] uppercase mb-1">Format</label>
+        <select id="trend-type" class="w-full px-3 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white" style="background:var(--bg-surface)">
+          <option value="">All Formats</option>
+          <option value="Movie">Movies Only</option>
+          <option value="TV Show">TV Shows Only</option>
+        </select>
+      </div>
+
+      <!-- Genre Filter -->
+      <div>
+        <label for="trend-genre" class="block text-[11px] font-semibold text-[#888] uppercase mb-1">Genre</label>
+        <select id="trend-genre" class="w-full px-3 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white" style="background:var(--bg-surface)">
+          <option value="">All Genres</option>
+          {% for g in filters.genres %}
+          <option value="{{ g }}">{{ g }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Country Filter -->
+      <div>
+        <label for="trend-country" class="block text-[11px] font-semibold text-[#888] uppercase mb-1">Country</label>
+        <select id="trend-country" class="w-full px-3 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white" style="background:var(--bg-surface)">
+          <option value="">All Countries</option>
+          {% for c in filters.countries %}
+          <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Rating Filter -->
+      <div>
+        <label for="trend-rating" class="block text-[11px] font-semibold text-[#888] uppercase mb-1">Maturity Rating</label>
+        <select id="trend-rating" class="w-full px-3 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white" style="background:var(--bg-surface)">
+          <option value="">All Ratings</option>
+          {% for r in filters.ratings %}
+          <option value="{{ r }}">{{ r }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Year Range -->
+      <div>
+        <label class="block text-[11px] font-semibold text-[#888] uppercase mb-1">Release Year</label>
+        <div class="flex items-center gap-1.5">
+          <input type="number" id="trend-year-min" placeholder="1980" value="1980" min="1925" max="2021"
+                 class="w-1/2 px-2 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white" style="background:var(--bg-surface)">
+          <span class="text-[#888] text-xs">&ndash;</span>
+          <input type="number" id="trend-year-max" placeholder="2021" value="2021" min="1925" max="2021"
+                 class="w-1/2 px-2 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white" style="background:var(--bg-surface)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 1: Yearly Volume & Average Movie Runtime Trend -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="lg:col-span-7 rounded-xl border border-[#2a2a3e] p-5 flex flex-col justify-between" style="background:var(--bg-card)">
+      <div>
+        <h3 class="font-bold text-sm text-white mb-1">Catalog Releases by Year</h3>
+        <p class="text-xs text-[#888] mb-3">Volume trajectory of releases across selected timeframe.</p>
+      </div>
+      <div id="trend-chart-year" style="height:310px; width:100%;"></div>
+    </div>
+
+    <div class="lg:col-span-5 rounded-xl border border-[#2a2a3e] p-5 flex flex-col justify-between" style="background:var(--bg-card)">
+      <div>
+        <h3 class="font-bold text-sm text-white mb-1">Average Movie Runtime Over Time</h3>
+        <p class="text-xs text-[#888] mb-3">Historical evolution of feature film durations (in minutes).</p>
+      </div>
+      <div id="trend-chart-duration" style="height:310px; width:100%;"></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Genre Dominance & Production Geographic Distribution -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="rounded-xl border border-[#2a2a3e] p-5 flex flex-col justify-between" style="background:var(--bg-card)">
+      <div>
+        <h3 class="font-bold text-sm text-white mb-1">Dominant Genres in Filtered Scope</h3>
+        <p class="text-xs text-[#888] mb-3">Distribution of catalog entries across primary content genres.</p>
+      </div>
+      <div id="trend-chart-genre" style="height:330px; width:100%;"></div>
+    </div>
+
+    <div class="rounded-xl border border-[#2a2a3e] p-5 flex flex-col justify-between" style="background:var(--bg-card)">
+      <div>
+        <h3 class="font-bold text-sm text-white mb-1">Top Producing Countries</h3>
+        <p class="text-xs text-[#888] mb-3">Geographic hubs responsible for the highest volume of content.</p>
+      </div>
+      <div id="trend-chart-country" style="height:330px; width:100%;"></div>
+    </div>
+  </div>
+
+  <!-- Row 3: Rating Distribution in Filtered Scope -->
+  <div class="rounded-xl border border-[#2a2a3e] p-5" style="background:var(--bg-card)">
+    <div class="mb-3">
+      <h3 class="font-bold text-sm text-white">Audience &amp; Maturity Breakdown</h3>
+      <p class="text-xs text-[#888]">Proportion of titles suitable for various viewer maturity categories.</p>
+    </div>
+    <div id="trend-chart-rating" style="height:260px; width:100%;"></div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const initialData = {{ trend_data | tojson }};
+
+  const darkTheme = {
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor:  'rgba(0,0,0,0)',
+    font: { family: "'Segoe UI', system-ui, sans-serif", color: '#e5e5e5', size: 11 },
+    xaxis: { gridcolor: '#222234', zerolinecolor: '#222234' },
+    yaxis: { gridcolor: '#222234', zerolinecolor: '#222234' },
+    margin: { t: 20, b: 40, l: 45, r: 20 },
+  };
+
+  const config = { responsive: true, displayModeBar: false };
+
+  function renderTrendCharts(data) {
+    document.getElementById('filtered-count').textContent = `Analyzing ${data.total_matches.toLocaleString()} titles`;
+
+    // 1. By Year (Stacked Bar)
+    const byYear = data.by_year || [];
+    const movies = byYear.filter(d => d.type === 'Movie');
+    const tvShows = byYear.filter(d => d.type === 'TV Show');
+
+    Plotly.newPlot('trend-chart-year', [
+      { x: movies.map(d => d.release_year), y: movies.map(d => d.count), name: 'Movies', type: 'bar', marker: { color: '#e50914' } },
+      { x: tvShows.map(d => d.release_year), y: tvShows.map(d => d.count), name: 'TV Shows', type: 'bar', marker: { color: '#6366f1' } }
+    ], {
+      ...darkTheme,
+      barmode: 'stack',
+      xaxis: { ...darkTheme.xaxis, title: 'Release Year' },
+      yaxis: { ...darkTheme.yaxis, title: 'Titles' },
+      legend: { orientation: 'h', y: 1.15, x: 0.7, font: { color: '#bbb' } }
+    }, config);
+
+    // 2. Average Movie Runtime Trend (Line)
+    const durTrends = data.duration_trends || [];
+    Plotly.newPlot('trend-chart-duration', [{
+      x: durTrends.map(d => d.year),
+      y: durTrends.map(d => d.avg_duration),
+      type: 'scatter',
+      mode: 'lines+markers',
+      line: { color: '#f59e0b', width: 2.5 },
+      marker: { size: 5, color: '#f59e0b' },
+      hoverinfo: 'x+y'
+    }], {
+      ...darkTheme,
+      xaxis: { ...darkTheme.xaxis, title: 'Release Year' },
+      yaxis: { ...darkTheme.yaxis, title: 'Minutes' }
+    }, config);
+
+    // 3. Top Genres (Horizontal Bar)
+    const topGenres = data.top_genres || [];
+    Plotly.newPlot('trend-chart-genre', [{
+      y: topGenres.map(d => d.genre).reverse(),
+      x: topGenres.map(d => d.count).reverse(),
+      type: 'bar',
+      orientation: 'h',
+      marker: { color: '#e50914' },
+      hoverinfo: 'y+x'
+    }], {
+      ...darkTheme,
+      margin: { t: 15, b: 40, l: 150, r: 20 },
+      xaxis: { ...darkTheme.xaxis, title: 'Count' }
+    }, config);
+
+    // 4. Top Countries (Horizontal Bar)
+    const topCountries = data.top_countries || [];
+    Plotly.newPlot('trend-chart-country', [{
+      y: topCountries.map(d => d.country).reverse(),
+      x: topCountries.map(d => d.count).reverse(),
+      type: 'bar',
+      orientation: 'h',
+      marker: { color: '#6366f1' },
+      hoverinfo: 'y+x'
+    }], {
+      ...darkTheme,
+      margin: { t: 15, b: 40, l: 140, r: 20 },
+      xaxis: { ...darkTheme.xaxis, title: 'Count' }
+    }, config);
+
+    // 5. Ratings Breakdown (Bar)
+    const ratings = data.ratings || [];
+    Plotly.newPlot('trend-chart-rating', [{
+      x: ratings.map(d => d.rating),
+      y: ratings.map(d => d.count),
+      type: 'bar',
+      marker: { color: '#10b981' },
+      hoverinfo: 'x+y'
+    }], {
+      ...darkTheme,
+      xaxis: { ...darkTheme.xaxis, title: 'Rating' },
+      yaxis: { ...darkTheme.yaxis, title: 'Titles' }
+    }, config);
+  }
+
+  // Initial render
+  renderTrendCharts(initialData);
+
+  // Live filter change handler
+  const filterInputs = ['trend-type', 'trend-genre', 'trend-country', 'trend-rating', 'trend-year-min', 'trend-year-max'];
+  filterInputs.forEach(id => {
+    document.getElementById(id).addEventListener('change', async () => {
+      const type = document.getElementById('trend-type').value;
+      const genre = document.getElementById('trend-genre').value;
+      const country = document.getElementById('trend-country').value;
+      const rating = document.getElementById('trend-rating').value;
+      const yearMin = document.getElementById('trend-year-min').value;
+      const yearMax = document.getElementById('trend-year-max').value;
+
+      const params = new URLSearchParams();
+      if (type) params.append('type', type);
+      if (genre) params.append('genre', genre);
+      if (country) params.append('country', country);
+      if (rating) params.append('rating', rating);
+      if (yearMin) params.append('year_min', yearMin);
+      if (yearMax) params.append('year_max', yearMax);
+
+      try {
+        const res = await fetch(`/api/trends?${params.toString()}`);
+        const data = await res.json();
+        renderTrendCharts(data);
+      } catch(err) {
+        console.error('Error fetching trend data:', err);
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

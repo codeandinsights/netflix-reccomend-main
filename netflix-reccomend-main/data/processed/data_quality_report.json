@@ -1,0 +1,44 @@
+{
+  "raw_audit": {
+    "raw_rows": 8807,
+    "raw_cols": 12,
+    "duplicate_rows": 0,
+    "duplicate_show_ids": 0,
+    "missing_values_by_column": {
+      "show_id": 0,
+      "type": 0,
+      "title": 0,
+      "director": 2634,
+      "cast": 825,
+      "country": 831,
+      "date_added": 10,
+      "release_year": 0,
+      "rating": 4,
+      "duration": 3,
+      "listed_in": 0,
+      "description": 0
+    },
+    "type_counts": {
+      "Movie": 6131,
+      "TV Show": 2676
+    }
+  },
+  "quality_report": {
+    "total_titles": 8807,
+    "total_movies": 6131,
+    "total_tv_shows": 2676,
+    "shifted_duration_anomalies_fixed": 3,
+    "missing_directors_count": 2634,
+    "missing_cast_count": 825,
+    "missing_country_count": 831,
+    "missing_date_added_count": 10,
+    "missing_rating_count_original": 4,
+    "unique_genres": 42,
+    "unique_countries": 122,
+    "unique_directors": 4993,
+    "unique_actors": 36439,
+    "avg_movie_duration_min": 99.56,
+    "min_release_year": 1925,
+    "max_release_year": 2021
+  }
+}

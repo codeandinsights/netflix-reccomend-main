@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}About &amp; Methodology — CineIQ{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+
+  <!-- Header -->
+  <div class="border-b border-[#2a2a3e] pb-5">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-red-950/60 border border-red-800/60 text-red-400">
+        System Documentation
+      </span>
+      <span class="text-xs text-[#888]">Architecture &amp; Data Governance</span>
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+      About <span style="color:var(--accent)">CineIQ</span> &amp; Methodology
+    </h1>
+    <p class="text-[#888] text-sm mt-1">
+      Academic project documentation, data audit report, recommendation pipeline methodology, and architectural principles.
+    </p>
+  </div>
+
+  <!-- Data Honesty & Disclosure Alert -->
+  <div class="rounded-xl border border-blue-900/60 p-5 bg-blue-950/20 text-blue-200 space-y-2">
+    <div class="flex items-center gap-2">
+      <svg class="w-5 h-5 text-blue-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <h3 class="font-bold text-sm text-white">Data Honesty &amp; Academic Scope Disclosure</h3>
+    </div>
+    <p class="text-xs leading-relaxed text-blue-300/90">
+      <strong>Static Dataset:</strong> This platform operates exclusively on an ingested historical Netflix catalog dataset (8,807 titles) through 2021. It does not scrape live streaming data or interact with private Netflix APIs.<br>
+      <strong>Content-Based Recommendations:</strong> Because user viewing history and rating matrices are not present in the public dataset, recommendation similarity is strictly <em>content-based / metadata-based</em> (TF-IDF vectorization and cosine similarity over synopsis, genres, cast, director, country, and format). No collaborative filtering or personalized user tracking is claimed.
+    </p>
+  </div>
+
+  <!-- Data Quality & Reconciliation Audit -->
+  <div class="rounded-xl border border-[#2a2a3e] p-6 space-y-4" style="background:var(--bg-card)">
+    <div class="flex items-center justify-between border-b border-[#2a2a3e] pb-3">
+      <div>
+        <h2 class="text-lg font-bold text-white">Verified Data Quality Audit</h2>
+        <p class="text-xs text-[#888]">Reconciliation between raw source CSV and processed SQLite relational storage.</p>
+      </div>
+      <span class="text-xs px-2.5 py-1 rounded bg-emerald-950/60 border border-emerald-800/40 text-emerald-400 font-bold">
+        100% Reconciled
+      </span>
+    </div>
+
+    <!-- Audit Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+      <div class="rounded-lg p-3 border border-[#2a2a3e]" style="background:var(--bg-surface)">
+        <p class="text-[10px] uppercase font-bold text-[#888]">Total Rows</p>
+        <p class="text-xl font-extrabold text-white mt-0.5">8,807</p>
+      </div>
+      <div class="rounded-lg p-3 border border-[#2a2a3e]" style="background:var(--bg-surface)">
+        <p class="text-[10px] uppercase font-bold text-[#888]">Duplicate Rows</p>
+        <p class="text-xl font-extrabold text-emerald-400 mt-0.5">0</p>
+      </div>
+      <div class="rounded-lg p-3 border border-[#2a2a3e]" style="background:var(--bg-surface)">
+        <p class="text-[10px] uppercase font-bold text-[#888]">Unique Genres</p>
+        <p class="text-xl font-extrabold text-white mt-0.5">42</p>
+      </div>
+      <div class="rounded-lg p-3 border border-[#2a2a3e]" style="background:var(--bg-surface)">
+        <p class="text-[10px] uppercase font-bold text-[#888]">Unique Countries</p>
+        <p class="text-xl font-extrabold text-white mt-0.5">122</p>
+      </div>
+    </div>
+
+    <!-- Missing Values Table -->
+    <div class="pt-2">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-[#888] mb-2">Source Dataset Null Value Handling</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border border-[#2a2a3e]">
+          <thead class="text-[#888] uppercase bg-slate-900/60 border-b border-[#2a2a3e]">
+            <tr>
+              <th class="px-3 py-2">Column Name</th>
+              <th class="px-3 py-2">Raw Nulls</th>
+              <th class="px-3 py-2">% Missing</th>
+              <th class="px-3 py-2">Engineering Treatment</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#2a2a3e] text-slate-300">
+            <tr>
+              <td class="px-3 py-2 font-mono text-white">director</td>
+              <td class="px-3 py-2">2,634</td>
+              <td class="px-3 py-2">29.9%</td>
+              <td class="px-3 py-2 text-[#888]">Preserved; fallback "Not available in dataset" rendered in UI</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2 font-mono text-white">country</td>
+              <td class="px-3 py-2">831</td>
+              <td class="px-3 py-2">9.4%</td>
+              <td class="px-3 py-2 text-[#888]">Tokenized; fallback "Unknown" for aggregation</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2 font-mono text-white">cast</td>
+              <td class="px-3 py-2">825</td>
+              <td class="px-3 py-2">9.4%</td>
+              <td class="px-3 py-2 text-[#888]">Preserved; fallback "Not available in dataset"</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2 font-mono text-white">date_added</td>
+              <td class="px-3 py-2">10</td>
+              <td class="px-3 py-2">0.11%</td>
+              <td class="px-3 py-2 text-[#888]">Parsed to ISO format (`YYYY-MM-DD`); nulls handled safely</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2 font-mono text-white">rating</td>
+              <td class="px-3 py-2">4</td>
+              <td class="px-3 py-2">0.05%</td>
+              <td class="px-3 py-2 text-[#888]">Cleaned; standard "Not Rated" applied to missing records</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2 font-mono text-white">duration</td>
+              <td class="px-3 py-2">3</td>
+              <td class="px-3 py-2">0.03%</td>
+              <td class="px-3 py-2 text-emerald-400">Shifted rating anomaly repaired; parsed to 100% complete minutes/seasons</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommendation Engine Methodology -->
+  <div class="rounded-xl border border-[#2a2a3e] p-6 space-y-4" style="background:var(--bg-card)">
+    <h2 class="text-lg font-bold text-white border-b border-[#2a2a3e] pb-2">Recommendation Engine Methodology</h2>
+    <div class="space-y-3 text-xs sm:text-sm text-slate-300 leading-relaxed">
+      <p>
+        The content intelligence platform utilizes a vectorized <strong>Content Soup</strong> pipeline. Each title's metadata is concatenated using deliberate feature weights:
+      </p>
+      <ul class="list-disc list-inside space-y-1 text-slate-400 pl-2">
+        <li><strong class="text-white">Genres (2x weight):</strong> High conceptual weight ensuring strong genre alignment.</li>
+        <li><strong class="text-white">Synopsis Description (1x):</strong> Rich semantic vocabulary processed via bi-grams.</li>
+        <li><strong class="text-white">Cast &amp; Director (1x):</strong> Primary talent markers to connect creator filmographies.</li>
+        <li><strong class="text-white">Country of Origin (1x):</strong> Geographic and cultural production alignment.</li>
+        <li><strong class="text-white">Format &amp; Rating (1x):</strong> Supporting signals for medium and target demographics.</li>
+      </ul>
+      <p>
+        Feature vectors are extracted using <code>TfidfVectorizer</code> with 10,000 max features, sublinear term-frequency scaling, and English stop-word filtering. Cosine similarity is computed pairwise. Lookups execute in &lt;10ms via precomputed matrix serialization.
+      </p>
+    </div>
+  </div>
+
+  <!-- Architecture & Technology Stack -->
+  <div class="rounded-xl border border-[#2a2a3e] p-6 space-y-4" style="background:var(--bg-card)">
+    <h2 class="text-lg font-bold text-white border-b border-[#2a2a3e] pb-2">Technology Stack &amp; Design Rationale</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+      <div class="rounded-lg p-3.5 border border-[#2a2a3e]" style="background:var(--bg-surface)">
+        <p class="font-bold text-red-500 mb-0.5">Flask 3.0 &amp; Jinja2</p>
+        <p class="text-[#888]">Lightweight, explainable web application framework with server-rendered Jinja2 templates.</p>
+      </div>
+      <div class="rounded-lg p-3.5 border border-[#2a2a3e]" style="background:var(--bg-surface)">
+        <p class="font-bold text-red-500 mb-0.5">SQLite &amp; SQLAlchemy 2.1</p>
+        <p class="text-[#888]">Normalized relational database with entity mapping and many-to-many junction tables.</p>
+      </div>
+      <div class="rounded-lg p-3.5 border border-[#2a2a3e]" style="background:var(--bg-surface)">
+        <p class="font-bold text-red-500 mb-0.5">Pandas 2.2 &amp; NumPy</p>
+        <p class="text-[#888]">Vectorized data wrangling, KPI aggregations, and in-memory multi-attribute filtering.</p>
+      </div>
+      <div class="rounded-lg p-3.5 border border-[#2a2a3e]" style="background:var(--bg-surface)">
+        <p class="font-bold text-red-500 mb-0.5">Scikit-Learn 1.5</p>
+        <p class="text-[#888]">TF-IDF vectorizer and linear kernel cosine similarity matrix computation.</p>
+      </div>
+      <div class="rounded-lg p-3.5 border border-[#2a2a3e]" style="background:var(--bg-surface)">
+        <p class="font-bold text-red-500 mb-0.5">Plotly 5.22</p>
+        <p class="text-[#888]">Interactive, responsive JavaScript data visualizations with dark-mode color palettes.</p>
+      </div>
+      <div class="rounded-lg p-3.5 border border-[#2a2a3e]" style="background:var(--bg-surface)">
+        <p class="font-bold text-red-500 mb-0.5">Pytest 8.2</p>
+        <p class="text-[#888]">Automated unit, module, integration, system, and regression test suites.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

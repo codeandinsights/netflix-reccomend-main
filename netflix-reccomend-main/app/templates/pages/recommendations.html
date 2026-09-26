@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+{% block title %}Recommendation Engine — CineIQ{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  <!-- Header Banner -->
+  <div class="border-b border-[#2a2a3e] pb-5">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-red-950/60 border border-red-800/60 text-red-400">
+        Machine Learning Engine
+      </span>
+      <span class="text-xs text-[#888]">Content-Based Vector Similarity</span>
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+      Explainable <span style="color:var(--accent)">Recommendations</span>
+    </h1>
+    <p class="text-[#888] text-sm mt-1 max-w-3xl">
+      Discover similar catalog titles computed via TF-IDF vectorization and cosine similarity over weighted title metadata (synopsis, genres, director, cast, country, format, and rating).
+      Every recommendation provides explicit, data-grounded rationale.
+    </p>
+  </div>
+
+  <!-- Interactive Title Selector / Search Picker -->
+  <div class="rounded-xl border border-[#2a2a3e] p-6 space-y-4" style="background:var(--bg-card)">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
+
+      <!-- Title Autocomplete / Search Box -->
+      <div class="lg:col-span-6 relative">
+        <label for="title-search" class="block text-xs font-semibold uppercase tracking-wider text-[#888] mb-1.5">
+          Search Any Title (Catalog Autocomplete)
+        </label>
+        <div class="relative">
+          <input type="text" id="title-search"
+                 placeholder="Type to search e.g. Stranger Things, Inception, Dark..."
+                 class="w-full pl-9 pr-4 py-2.5 rounded-lg border border-[#2a2a3e] text-sm focus:outline-none focus:border-[#e50914] text-white"
+                 style="background:var(--bg-surface)">
+          <svg class="w-4 h-4 text-[#888] absolute left-3 top-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+        <!-- Live autocomplete dropdown -->
+        <div id="autocomplete-list" class="hidden absolute z-30 left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-lg border border-[#2a2a3e] shadow-2xl"
+             style="background:var(--bg-surface)"></div>
+      </div>
+
+      <!-- Quick Preset Dropdown -->
+      <div class="lg:col-span-3">
+        <label for="title-select" class="block text-xs font-semibold uppercase tracking-wider text-[#888] mb-1.5">
+          Or Choose from Sample Titles
+        </label>
+        <select id="title-select"
+                class="w-full px-3 py-2.5 rounded-lg border border-[#2a2a3e] text-sm focus:outline-none focus:border-[#e50914] text-white"
+                style="background:var(--bg-surface)">
+          <option value="">-- Choose a title --</option>
+          {% for t in sample_titles %}
+          <option value="{{ t.show_id }}" {% if preselect_show_id == t.show_id %}selected{% endif %}>
+            {{ t.title }} ({{ t.type }}{% if t.release_year %}, {{ t.release_year }}{% endif %})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Count Selector -->
+      <div class="lg:col-span-1">
+        <label for="count-select" class="block text-xs font-semibold uppercase tracking-wider text-[#888] mb-1.5">
+          Count
+        </label>
+        <select id="count-select"
+                class="w-full px-2.5 py-2.5 rounded-lg border border-[#2a2a3e] text-sm focus:outline-none focus:border-[#e50914] text-white"
+                style="background:var(--bg-surface)">
+          <option value="5">Top 5</option>
+          <option value="10" selected>Top 10</option>
+          <option value="15">Top 15</option>
+          <option value="20">Top 20</option>
+        </select>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="lg:col-span-2">
+        <button id="get-recs-btn"
+                class="w-full py-2.5 px-4 rounded-lg text-sm font-bold text-white transition-all shadow-lg shadow-red-950/30 flex items-center justify-center gap-2"
+                style="background:var(--accent)"
+                onmouseover="this.style.background='var(--accent-hover)'"
+                onmouseout="this.style.background='var(--accent)'">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          Get Similar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div id="rec-loading" class="hidden text-center py-10 space-y-3">
+    <div class="w-8 h-8 mx-auto border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+    <p class="text-xs text-[#888]">Computing cosine similarities over 10,000 TF-IDF features...</p>
+  </div>
+
+  <!-- Error Banner -->
+  <div id="rec-error" class="hidden p-4 rounded-lg bg-red-950/50 border border-red-800 text-red-300 text-xs font-medium"></div>
+
+  <!-- Selected Query Summary Card -->
+  <div id="query-summary" class="{% if not selected_item %}hidden{% endif %} rounded-xl border border-red-900/40 p-5 bg-red-950/20">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-red-400">Query Title</span>
+        <h2 id="summary-title" class="text-xl font-bold text-white">
+          {{ selected_item.title if selected_item else '' }}
+        </h2>
+        <p id="summary-meta" class="text-xs text-[#888] mt-0.5">
+          {% if selected_item %}
+          {{ selected_item.type }} &bull; {{ selected_item.release_year }} &bull; Rating: {{ selected_item.rating }} &bull; {{ selected_item.duration_raw }}
+          {% endif %}
+        </p>
+      </div>
+      <div id="summary-genres" class="flex flex-wrap gap-1.5">
+        {% if selected_item and selected_item.genre_list %}
+        {% for g in selected_item.genre_list %}
+        <span class="text-[10px] px-2 py-0.5 rounded bg-red-950/80 border border-red-800/40 text-red-300">
+          {{ g }}
+        </span>
+        {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommendations Results Container -->
+  <div id="rec-results-section" class="{% if not initial_recs %}hidden{% endif %} space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-bold text-white flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-red-600"></span>
+        Recommended Similar Titles (<span id="results-count">{{ initial_recs|length }}</span>)
+      </h2>
+      <span class="text-xs text-[#888]">Ranked by Cosine Similarity</span>
+    </div>
+
+    <!-- Recommendations Grid -->
+    <div id="rec-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for r in initial_recs %}
+      <div class="rounded-xl border border-[#2a2a3e] p-5 flex flex-col justify-between hover:border-red-600/80 transition-all"
+           style="background:var(--bg-card)">
+        <div>
+          <!-- Header with Match Percentage -->
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <div>
+              <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded
+                           {% if r.type == 'Movie' %}bg-red-950/60 text-red-400{% else %}bg-indigo-950/60 text-indigo-400{% endif %}">
+                {{ r.type }}
+              </span>
+              <a href="{{ url_for('main.content_details', show_id=r.show_id) }}"
+                 class="font-bold text-base text-white hover:text-red-400 transition-colors block mt-1.5">
+                {{ r.title }}
+              </a>
+              <p class="text-xs text-[#888] mt-0.5">
+                {{ r.release_year }} &bull; {{ r.duration_raw }} &bull; Rating: {{ r.rating }}
+              </p>
+            </div>
+
+            <!-- Score Badge -->
+            <div class="shrink-0 text-right">
+              <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-extrabold text-emerald-400 bg-emerald-950/60 border border-emerald-800/40">
+                {{ r.similarity_percentage }}% Match
+              </span>
+              <p class="text-[10px] text-[#888] mt-0.5 font-mono">cos: {{ r.similarity_score }}</p>
+            </div>
+          </div>
+
+          <!-- Synopsis snippet -->
+          {% if r.description %}
+          <p class="text-xs text-slate-300 leading-relaxed my-3 line-clamp-2">
+            {{ r.description }}
+          </p>
+          {% endif %}
+
+          <!-- Explainability Reason Badges -->
+          <div class="pt-3 border-t border-[#2a2a3e] space-y-1.5">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-[#888]">Why this was recommended:</p>
+            <div class="flex flex-wrap gap-1.5">
+              {% for exp in r.explanations %}
+              <span class="text-[11px] px-2 py-0.5 rounded border {{ exp.badge_class }} font-medium">
+                &check; {{ exp.label }}: <span class="font-normal">{{ exp.detail }}</span>
+              </span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Footer -->
+        <div class="pt-4 mt-4 border-t border-[#2a2a3e] flex items-center justify-between text-xs">
+          <a href="{{ url_for('main.content_details', show_id=r.show_id) }}"
+             class="font-semibold text-slate-300 hover:text-white transition-colors">
+            View Title Details
+          </a>
+          <button onclick="triggerForShowId('{{ r.show_id }}')"
+                  class="font-semibold text-red-500 hover:text-red-400 transition-colors">
+            Find Similar to This &rarr;
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentSelectedShowId = "{{ preselect_show_id or '' }}";
+
+const titleSearchInput = document.getElementById('title-search');
+const autocompleteList = document.getElementById('autocomplete-list');
+const titleSelect = document.getElementById('title-select');
+const countSelect = document.getElementById('count-select');
+const getRecsBtn = document.getElementById('get-recs-btn');
+const recLoading = document.getElementById('rec-loading');
+const recError = document.getElementById('rec-error');
+const recResultsSection = document.getElementById('rec-results-section');
+const recGrid = document.getElementById('rec-grid');
+const querySummary = document.getElementById('query-summary');
+const summaryTitle = document.getElementById('summary-title');
+const summaryMeta = document.getElementById('summary-meta');
+const summaryGenres = document.getElementById('summary-genres');
+const resultsCount = document.getElementById('results-count');
+
+// Autocomplete debounce
+let searchTimer = null;
+titleSearchInput.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  const q = titleSearchInput.value.trim();
+  if (q.length < 2) {
+    autocompleteList.classList.add('hidden');
+    return;
+  }
+  searchTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=10`);
+      const data = await res.json();
+      if (!data.results || data.results.length === 0) {
+        autocompleteList.innerHTML = '<div class="p-3 text-xs text-[#888]">No matching titles found.</div>';
+        autocompleteList.classList.remove('hidden');
+        return;
+      }
+      autocompleteList.innerHTML = '';
+      data.results.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'px-3 py-2 text-xs text-white hover:bg-slate-800 cursor-pointer border-b border-[#2a2a3e] last:border-b-0 flex items-center justify-between';
+        row.innerHTML = `<span><strong>${item.title}</strong> (${item.release_year})</span><span class="text-[10px] text-[#888] uppercase">${item.type}</span>`;
+        row.addEventListener('click', () => {
+          currentSelectedShowId = item.show_id;
+          titleSearchInput.value = item.title;
+          autocompleteList.classList.add('hidden');
+          fetchAndDisplayRecommendations(item.show_id);
+        });
+        autocompleteList.appendChild(row);
+      });
+      autocompleteList.classList.remove('hidden');
+    } catch(err) {
+      console.error(err);
+    }
+  }, 200);
+});
+
+// Hide autocomplete on click outside
+document.addEventListener('click', (e) => {
+  if (!autocompleteList.contains(e.target) && e.target !== titleSearchInput) {
+    autocompleteList.classList.add('hidden');
+  }
+});
+
+// Dropdown change
+titleSelect.addEventListener('change', () => {
+  const showId = titleSelect.value;
+  if (showId) {
+    currentSelectedShowId = showId;
+    fetchAndDisplayRecommendations(showId);
+  }
+});
+
+// Button click
+getRecsBtn.addEventListener('click', () => {
+  const showId = currentSelectedShowId || titleSelect.value;
+  if (!showId) {
+    recError.textContent = 'Please choose or search for a title first.';
+    recError.classList.remove('hidden');
+    return;
+  }
+  fetchAndDisplayRecommendations(showId);
+});
+
+window.triggerForShowId = function(showId) {
+  currentSelectedShowId = showId;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  fetchAndDisplayRecommendations(showId);
+};
+
+async function fetchAndDisplayRecommendations(showId) {
+  if (!showId) return;
+
+  recLoading.classList.remove('hidden');
+  recError.classList.add('hidden');
+
+  const n = countSelect.value || 10;
+
+  try {
+    const res = await fetch(`/api/recommendations?show_id=${encodeURIComponent(showId)}&n=${n}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      recError.textContent = data.error || 'Failed to fetch recommendations.';
+      recError.classList.remove('hidden');
+      return;
+    }
+
+    const results = data.results || [];
+    renderResults(results);
+
+  } catch(err) {
+    recError.textContent = 'Network error: ' + err.message;
+    recError.classList.remove('hidden');
+  } finally {
+    recLoading.classList.add('hidden');
+  }
+}
+
+function renderResults(results) {
+  recGrid.innerHTML = '';
+  resultsCount.textContent = results.length;
+
+  if (results.length === 0) {
+    recGrid.innerHTML = '<div class="col-span-2 text-center p-8 text-[#888] text-xs">No similar titles found for this query.</div>';
+    recResultsSection.classList.remove('hidden');
+    return;
+  }
+
+  results.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'rounded-xl border border-[#2a2a3e] p-5 flex flex-col justify-between hover:border-red-600/80 transition-all';
+    card.style.background = 'var(--bg-card)';
+
+    const typeBadge = r.type === 'Movie'
+      ? '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-red-950/60 text-red-400">Movie</span>'
+      : '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-indigo-950/60 text-indigo-400">TV Show</span>';
+
+    let explanationsHtml = '';
+    if (r.explanations && r.explanations.length > 0) {
+      explanationsHtml = r.explanations.map(exp => `
+        <span class="text-[11px] px-2 py-0.5 rounded border ${exp.badge_class || 'border-[#2a2a3e] text-slate-300'} font-medium">
+          &check; ${exp.label}: <span class="font-normal">${exp.detail}</span>
+        </span>
+      `).join('');
+    }
+
+    card.innerHTML = `
+      <div>
+        <div class="flex items-start justify-between gap-3 mb-2">
+          <div>
+            ${typeBadge}
+            <a href="/content/${encodeURIComponent(r.show_id)}" class="font-bold text-base text-white hover:text-red-400 transition-colors block mt-1.5">
+              ${r.title}
+            </a>
+            <p class="text-xs text-[#888] mt-0.5">
+              ${r.release_year || 'Unknown'} &bull; ${r.duration_raw || ''} &bull; Rating: ${r.rating || 'Not Rated'}
+            </p>
+          </div>
+          <div class="shrink-0 text-right">
+            <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-extrabold text-emerald-400 bg-emerald-950/60 border border-emerald-800/40">
+              ${r.similarity_percentage}% Match
+            </span>
+            <p class="text-[10px] text-[#888] mt-0.5 font-mono">cos: ${r.similarity_score}</p>
+          </div>
+        </div>
+
+        ${r.description ? `<p class="text-xs text-slate-300 leading-relaxed my-3 line-clamp-2">${r.description}</p>` : ''}
+
+        <div class="pt-3 border-t border-[#2a2a3e] space-y-1.5">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-[#888]">Why this was recommended:</p>
+          <div class="flex flex-wrap gap-1.5">
+            ${explanationsHtml}
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-4 mt-4 border-t border-[#2a2a3e] flex items-center justify-between text-xs">
+        <a href="/content/${encodeURIComponent(r.show_id)}" class="font-semibold text-slate-300 hover:text-white transition-colors">
+          View Title Details
+        </a>
+        <button onclick="triggerForShowId('${r.show_id}')" class="font-semibold text-red-500 hover:text-red-400 transition-colors">
+          Find Similar to This &rarr;
+        </button>
+      </div>
+    `;
+
+    recGrid.appendChild(card);
+  });
+
+  recResultsSection.classList.remove('hidden');
+}
+</script>
+{% endblock %}

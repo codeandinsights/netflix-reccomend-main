@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}Catalog Explorer — CineIQ{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Header & Controls -->
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#2a2a3e] pb-5">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-950/60 border border-red-800/60 text-red-400">
+          Catalog Engine
+        </span>
+        <span class="text-xs text-[#888]">Filterable Content Archive</span>
+      </div>
+      <h1 class="text-3xl font-extrabold text-white tracking-tight">
+        Content <span style="color:var(--accent)">Explorer</span>
+      </h1>
+      <p class="text-[#888] text-xs sm:text-sm mt-1">
+        Search and multi-filter across all {{ "{:,}".format(pagination.total_count) }} matching Netflix titles.
+      </p>
+    </div>
+
+    <!-- Export Button -->
+    <div class="flex items-center gap-2.5">
+      <a href="{{ url_for('main.export', **current_filters) }}"
+         class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-200 border border-[#2a2a3e] hover:border-slate-400 transition-colors"
+         style="background:var(--bg-card)">
+        <svg class="w-4 h-4 text-[#888]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Export Filtered CSV
+      </a>
+      {% if current_filters.q or current_filters.type or current_filters.genre or current_filters.country or current_filters.rating or current_filters.year_min or current_filters.year_max %}
+      <a href="{{ url_for('main.explore') }}"
+         class="px-3 py-2 rounded-lg text-xs font-medium text-red-400 hover:text-red-300 border border-red-900/40 bg-red-950/30 transition-colors">
+        Clear Filters
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Multifaceted Filter Form -->
+  <form method="GET" action="{{ url_for('main.explore') }}" id="filter-form"
+        class="rounded-xl border border-[#2a2a3e] p-5 space-y-4" style="background:var(--bg-card)">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+
+      <!-- 1. Search Query -->
+      <div>
+        <label for="q-input" class="block text-xs font-semibold uppercase tracking-wider text-[#888] mb-1.5">Search Title</label>
+        <div class="relative">
+          <input type="text" id="q-input" name="q" value="{{ current_filters.q or '' }}"
+                 placeholder="e.g. Stranger, Matrix, Crown..."
+                 class="w-full pl-9 pr-3 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white"
+                 style="background:var(--bg-surface)">
+          <svg class="w-4 h-4 text-[#888] absolute left-3 top-2.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 2. Content Type -->
+      <div>
+        <label for="type-select" class="block text-xs font-semibold uppercase tracking-wider text-[#888] mb-1.5">Format / Type</label>
+        <select id="type-select" name="type"
+                class="w-full px-3 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white"
+                style="background:var(--bg-surface)">
+          <option value="">All Formats (Movie &amp; TV)</option>
+          <option value="Movie" {% if current_filters.type == 'Movie' %}selected{% endif %}>Movies</option>
+          <option value="TV Show" {% if current_filters.type == 'TV Show' %}selected{% endif %}>TV Shows</option>
+        </select>
+      </div>
+
+      <!-- 3. Genre -->
+      <div>
+        <label for="genre-select" class="block text-xs font-semibold uppercase tracking-wider text-[#888] mb-1.5">Genre</label>
+        <select id="genre-select" name="genre"
+                class="w-full px-3 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white"
+                style="background:var(--bg-surface)">
+          <option value="">All Genres ({{ filters.genres|length }})</option>
+          {% for g in filters.genres %}
+          <option value="{{ g }}" {% if current_filters.genre == g %}selected{% endif %}>{{ g }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- 4. Country -->
+      <div>
+        <label for="country-select" class="block text-xs font-semibold uppercase tracking-wider text-[#888] mb-1.5">Production Country</label>
+        <select id="country-select" name="country"
+                class="w-full px-3 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white"
+                style="background:var(--bg-surface)">
+          <option value="">All Countries ({{ filters.countries|length }})</option>
+          {% for c in filters.countries %}
+          <option value="{{ c }}" {% if current_filters.country == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- 5. Rating -->
+      <div>
+        <label for="rating-select" class="block text-xs font-semibold uppercase tracking-wider text-[#888] mb-1.5">Maturity Rating</label>
+        <select id="rating-select" name="rating"
+                class="w-full px-3 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white"
+                style="background:var(--bg-surface)">
+          <option value="">All Ratings</option>
+          {% for r in filters.ratings %}
+          <option value="{{ r }}" {% if current_filters.rating == r %}selected{% endif %}>{{ r }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- 6. Year Range (Min - Max) -->
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-[#888] mb-1.5">Release Year Range</label>
+        <div class="flex items-center gap-2">
+          <input type="number" name="year_min" value="{{ current_filters.year_min or '' }}" min="1925" max="2021"
+                 placeholder="1925"
+                 class="w-1/2 px-2.5 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white"
+                 style="background:var(--bg-surface)">
+          <span class="text-[#888] text-xs">&ndash;</span>
+          <input type="number" name="year_max" value="{{ current_filters.year_max or '' }}" min="1925" max="2021"
+                 placeholder="2021"
+                 class="w-1/2 px-2.5 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white"
+                 style="background:var(--bg-surface)">
+        </div>
+      </div>
+
+      <!-- 7. Sort By -->
+      <div>
+        <label for="sort-select" class="block text-xs font-semibold uppercase tracking-wider text-[#888] mb-1.5">Sort Catalog By</label>
+        <select id="sort-select" name="sort_by"
+                class="w-full px-3 py-2 rounded-lg border border-[#2a2a3e] text-xs focus:outline-none focus:border-[#e50914] text-white"
+                style="background:var(--bg-surface)">
+          <option value="year_desc" {% if current_filters.sort_by == 'year_desc' %}selected{% endif %}>Release Year (Newest)</option>
+          <option value="year_asc" {% if current_filters.sort_by == 'year_asc' %}selected{% endif %}>Release Year (Oldest)</option>
+          <option value="title_asc" {% if current_filters.sort_by == 'title_asc' %}selected{% endif %}>Title (A &rarr; Z)</option>
+          <option value="title_desc" {% if current_filters.sort_by == 'title_desc' %}selected{% endif %}>Title (Z &rarr; A)</option>
+          <option value="date_added_desc" {% if current_filters.sort_by == 'date_added_desc' %}selected{% endif %}>Date Added (Recent)</option>
+        </select>
+      </div>
+
+      <!-- 8. Submit Action Button -->
+      <div class="flex items-end">
+        <button type="submit"
+                class="w-full py-2 px-4 rounded-lg text-xs font-bold text-white uppercase tracking-wider transition-colors shadow-md shadow-red-950/30"
+                style="background:var(--accent)"
+                onmouseover="this.style.background='var(--accent-hover)'"
+                onmouseout="this.style.background='var(--accent)'">
+          Apply Filters
+        </button>
+      </div>
+
+    </div>
+  </form>
+
+  <!-- Results Summary Bar -->
+  <div class="flex items-center justify-between text-xs text-[#888] px-1">
+    <span>
+      Showing <strong class="text-white">{{ items|length }}</strong> of
+      <strong class="text-white">{{ "{:,}".format(pagination.total_count) }}</strong> total titles
+      (Page {{ pagination.page }} of {{ pagination.total_pages }})
+    </span>
+  </div>
+
+  <!-- Content Grid -->
+  {% if items %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    {% for item in items %}
+    <div class="rounded-xl border border-[#2a2a3e] p-4 flex flex-col justify-between hover:border-red-600 transition-all group"
+         style="background:var(--bg-card)">
+      <div>
+        <!-- Top Format & Rating badges -->
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded
+                       {% if item.type == 'Movie' %}bg-red-950/70 text-red-300 border border-red-800/40{% else %}bg-indigo-950/70 text-indigo-300 border border-indigo-800/40{% endif %}">
+            {{ item.type }}
+          </span>
+
+          <span class="text-[10px] font-semibold text-amber-300 px-1.5 py-0.5 rounded border border-amber-800/40 bg-amber-950/30">
+            {{ item.rating or 'Not Rated' }}
+          </span>
+        </div>
+
+        <!-- Title -->
+        <a href="{{ url_for('main.content_details', show_id=item.show_id) }}"
+           class="font-bold text-sm text-white line-clamp-1 group-hover:text-red-400 transition-colors block"
+           title="{{ item.title }}">
+          {{ item.title }}
+        </a>
+
+        <!-- Metadata row -->
+        <p class="text-xs text-[#888] mt-1">
+          {{ item.release_year }} &bull; {{ item.duration_raw }}
+        </p>
+
+        <!-- Genres -->
+        {% if item.genre_list %}
+        <p class="text-[11px] text-slate-400 mt-2 line-clamp-1" title="{{ item.genre_list|join(', ') }}">
+          {{ item.genre_list[:2]|join(', ') }}
+        </p>
+        {% endif %}
+
+        <!-- Synopsis snippet -->
+        {% if item.description %}
+        <p class="text-xs text-[#888] mt-2 line-clamp-2 leading-relaxed">
+          {{ item.description }}
+        </p>
+        {% endif %}
+      </div>
+
+      <!-- Action Footer -->
+      <div class="pt-3 mt-3 border-t border-[#2a2a3e] flex items-center justify-between text-xs">
+        <a href="{{ url_for('main.content_details', show_id=item.show_id) }}"
+           class="font-semibold text-slate-300 hover:text-white transition-colors">
+          View Details
+        </a>
+        <a href="{{ url_for('main.recommendations', show_id=item.show_id) }}"
+           class="font-semibold text-red-500 hover:text-red-400 transition-colors inline-flex items-center gap-1">
+          Similar &rarr;
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination Controls -->
+  {% if pagination.total_pages > 1 %}
+  <div class="flex items-center justify-center gap-2 pt-6">
+    {% if pagination.has_prev %}
+    <a href="{{ url_for('main.explore', page=pagination.page - 1, **current_filters) }}"
+       class="px-3.5 py-1.5 rounded-md text-xs font-semibold border border-[#2a2a3e] text-slate-300 hover:border-slate-400 transition-colors"
+       style="background:var(--bg-card)">
+      &larr; Previous
+    </a>
+    {% endif %}
+
+    <span class="px-3 py-1.5 rounded-md text-xs font-medium text-[#888] border border-[#2a2a3e]" style="background:var(--bg-surface)">
+      Page {{ pagination.page }} / {{ pagination.total_pages }}
+    </span>
+
+    {% if pagination.has_next %}
+    <a href="{{ url_for('main.explore', page=pagination.page + 1, **current_filters) }}"
+       class="px-3.5 py-1.5 rounded-md text-xs font-semibold border border-[#2a2a3e] text-slate-300 hover:border-slate-400 transition-colors"
+       style="background:var(--bg-card)">
+      Next &rarr;
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <!-- Empty State -->
+  <div class="rounded-xl border border-[#2a2a3e] p-12 text-center space-y-3" style="background:var(--bg-card)">
+    <div class="w-12 h-12 mx-auto rounded-full bg-slate-800/80 flex items-center justify-center text-[#888]">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <h3 class="text-base font-bold text-white">No Matching Titles Found</h3>
+    <p class="text-xs text-[#888] max-w-sm mx-auto">
+      No catalog entries matched your search query and filter criteria. Try loosening your filters or resetting the search term.
+    </p>
+    <div class="pt-2">
+      <a href="{{ url_for('main.explore') }}"
+         class="inline-block px-4 py-2 rounded-lg text-xs font-bold text-white"
+         style="background:var(--accent)">
+        Reset All Filters
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
